@@ -1,0 +1,6 @@
+/bin/
+/dist/
+/reports/
+/*.log
+*.swp
+.DS_Store
