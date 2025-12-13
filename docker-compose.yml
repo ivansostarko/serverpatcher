@@ -1,0 +1,37 @@
+version: "3.9"
+
+services:
+  serverpatcher:
+    image: golang:1.22-bookworm
+    container_name: serverpatcher
+    working_dir: /src
+    init: true
+    user: "0:0" # patching needs root inside the container
+    volumes:
+      - ./:/src:rw
+      # runtime paths (persist logs/reports/config outside the container)
+      - ./_runtime/etc:/etc/serverpatcher:rw
+      - ./_runtime/varlog:/var/log/serverpatcher:rw
+      - ./_runtime/varlib:/var/lib/serverpatcher:rw
+      - ./_runtime/varlock:/var/lock:rw
+    environment:
+      # must match your config's email.password_env (default is SERVERPATCHER_EMAIL_PASSWORD)
+      SERVERPATCHER_EMAIL_PASSWORD: ${SERVERPATCHER_EMAIL_PASSWORD:-}
+    depends_on:
+      - mailhog
+    # Default: run as a daemon loop (useful to see repeated runs)
+    command: >
+      bash -lc "
+        set -euo pipefail;
+        go build -trimpath -o /usr/local/bin/serverpatcher ./cmd/serverpatcher;
+        /usr/local/bin/serverpatcher daemon --config /etc/serverpatcher/config.json --verbose
+      "
+    restart: unless-stopped
+
+  # SMTP test sink (optional, but very useful)
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: serverpatcher-mailhog
+    ports:
+      - "8025:8025" # web UI
+      - "1025:1025" # SMTP

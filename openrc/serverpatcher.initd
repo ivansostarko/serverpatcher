@@ -1,0 +1,20 @@
+#!/sbin/openrc-run
+# Optional OpenRC service for daemon mode.
+# Recommended alternative: cron.daily + run-once.
+
+name="serverpatcher"
+command="/usr/local/bin/serverpatcher"
+command_args="daemon --config /etc/serverpatcher/config.json"
+command_background="yes"
+pidfile="/run/${name}.pid"
+output_log="/var/log/serverpatcher/serverpatcher.log"
+error_log="/var/log/serverpatcher/serverpatcher.log"
+
+depend() {
+  need net
+}
+
+start_pre() {
+  checkpath -d -m 0755 /var/log/serverpatcher
+  checkpath -d -m 0755 /var/lib/serverpatcher/reports
+}

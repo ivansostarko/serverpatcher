@@ -8,7 +8,6 @@ Type=oneshot
 User=root
 Group=root
 ExecStart=/usr/local/bin/serverpatcher run-once --config /etc/serverpatcher/config.json
-# Hardening (review for your environment; patching requires broad system access)
 NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectHome=yes

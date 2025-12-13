@@ -188,6 +188,5 @@ func DefaultJSON(pretty bool) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return string(b) + "
-", nil
+	return string(b) + "\n", nil
 }

@@ -1,0 +1,11 @@
+#!/bin/sh
+# Runs Server Patcher once per day via cron.
+# Ensure crond is enabled and running.
+
+CONFIG="/etc/serverpatcher/config.json"
+
+if [ -x /usr/local/bin/serverpatcher ]; then
+  /usr/local/bin/serverpatcher run-once --config "$CONFIG" >/dev/null 2>&1
+elif [ -x /usr/bin/serverpatcher ]; then
+  /usr/bin/serverpatcher run-once --config "$CONFIG" >/dev/null 2>&1
+fi
