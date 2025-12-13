@@ -1,7 +1,7 @@
 name: serverpatcher
 arch: amd64
 platform: linux
-version: "0.0.0"   # overridden by CI (--version)
+version: "0.1.0"   # overridden by CI (--version)
 section: admin
 priority: optional
 maintainer: "Server Patcher Maintainers <maintainers@example.com>"
@@ -9,7 +9,7 @@ description: |
   Server Patcher applies OS package updates via native package managers,
   writes logs and JSON run reports, and can email a report.
 vendor: "Server Patcher"
-homepage: "https://github.com/<your-org>/serverpatcher"
+homepage: "https://github.com/ivansostarko/serverpatcher"
 license: "MIT"
 
 depends:

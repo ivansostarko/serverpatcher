@@ -8,7 +8,7 @@ description: |
   Server Patcher applies OS package updates via native package managers,
   writes logs and JSON run reports, and can email a report.
 vendor: "Server Patcher"
-homepage: "https://github.com/<your-org>/serverpatcher"
+homepage: "https://github.com/ivansostarko/serverpatcher"
 license: "MIT"
 
 depends:
