@@ -1,14 +1,15 @@
 # Client installation from your hosted APT/YUM repositories
 
-Assumes you publish `public/` via GitHub Pages:
+Folder `public/` via GitHub Pages:
+
 Base URL:
-- `https://<your-org>.github.io/serverpatcher/`
+- `https://ivansostarko.github.io/serverpatcher/`
 
 APT:
-- `https://<your-org>.github.io/serverpatcher/apt`
+- `https://ivansostarko.github.io/serverpatcher/apt`
 
 YUM/DNF:
-- `https://<your-org>.github.io/serverpatcher/yum/x86_64` 
+- `https://ivansostarko.github.io/serverpatcheryum/x86_64` 
 
 ## Ubuntu / Debian (APT)
 
@@ -17,10 +18,10 @@ sudo apt-get update
 sudo apt-get install -y ca-certificates curl gnupg
 
 sudo install -d -m 0755 /usr/share/keyrings
-curl -fsSL https://<your-org>.github.io/serverpatcher/keys/serverpatcher.gpg \
+curl -fsSL https://ivansostarko.github.io/serverpatcher/keys/serverpatcher.gpg \
   | sudo gpg --dearmor -o /usr/share/keyrings/serverpatcher-archive-keyring.gpg
 
-echo "deb [signed-by=/usr/share/keyrings/serverpatcher-archive-keyring.gpg] https://<your-org>.github.io/serverpatcher/apt stable main" \
+echo "deb [signed-by=/usr/share/keyrings/serverpatcher-archive-keyring.gpg] https://ivansostarko.github.io/serverpatcher/apt stable main" \
   | sudo tee /etc/apt/sources.list.d/serverpatcher.list >/dev/null
 
 sudo apt-get update
@@ -35,7 +36,7 @@ systemctl status serverpatcher.timer
 sudo tee /etc/yum.repos.d/serverpatcher.repo >/dev/null <<'EOF'
 [serverpatcher]
 name=Server Patcher
-baseurl=https://<your-org>.github.io/serverpatcher/yum/x86_64
+baseurl=https://ivansostarko.github.io/serverpatcher/yum/x86_64
 enabled=1
 gpgcheck=0
 repo_gpgcheck=0
