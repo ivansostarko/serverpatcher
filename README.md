@@ -80,6 +80,21 @@ Sanity checks:
 ./bin/serverpatcher detect
 ```
 
+### Distros without systemd (e.g., Alpine with OpenRC)
+You have two realistic options:
+1. **cron + run-once** (recommended)
+2. **OpenRC service running daemon mode** (works, but more moving parts)
+
+The installer detects OpenRC and installs:
+- `/etc/cron.daily/serverpatcher` (runs `serverpatcher run-once`)
+- optional `/etc/init.d/serverpatcher` (daemon mode) if `INSTALL_DAEMON_OPENRC=1`
+
+Enable cron on Alpine:
+```bash
+rc-update add crond default
+rc-service crond start
+```
+
 ## Install as a service
 
 ### Recommendation: systemd timer + oneshot service
@@ -126,3 +141,53 @@ serverpatcher print-default-config --pretty > config.json
 - `email.password_env`: environment variable name holding the SMTP password (recommended)
 - `logging.file`: `/var/log/serverpatcher/serverpatcher.log` (rotated via logrotate)
 - `report.dir`: `/var/lib/serverpatcher/reports`
+
+
+### SMTP credentials 
+Do **not** hardcode SMTP passwords in the JSON config. Use an environment variable.
+
+Example for systemd (drop-in override):
+```bash
+sudo mkdir -p /etc/systemd/system/serverpatcher.service.d
+sudo tee /etc/systemd/system/serverpatcher.service.d/override.conf >/dev/null <<'EOF'
+[Service]
+Environment=SERVERPATCHER_EMAIL_PASSWORD=REPLACE_ME
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl restart serverpatcher.timer
+```
+
+## Reports and logs
+
+### Reports
+Default directory:
+- `/var/lib/serverpatcher/reports/`
+
+Files:
+- `report_<hostname>_<timestamp>.json`
+
+### Logs
+Default log file:
+- `/var/log/serverpatcher/serverpatcher.log`
+
+Rotation:
+- `/etc/logrotate.d/serverpatcher`
+
+## CLI commands
+
+```bash
+serverpatcher run-once --config /etc/serverpatcher/config.json [--verbose]
+serverpatcher daemon --config /etc/serverpatcher/config.json [--verbose]
+serverpatcher detect
+serverpatcher validate-config --config /etc/serverpatcher/config.json
+serverpatcher print-default-config --pretty[=true|false]
+serverpatcher version
+```
+
+
+## Uninstall
+
+```bash
+sudo ./scripts/uninstall.sh
+```
