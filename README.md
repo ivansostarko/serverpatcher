@@ -1,121 +1,128 @@
 # Server Patcher
 
-Server Patcher is an open-source Linux patching service written in Go. It applies OS package updates using the host’s native package manager (APT, DNF, YUM, Zypper, Pacman, APK), writes structured logs, persists a JSON report per run, and can email a run report.
+Server Patcher is an open-source Linux patch automation tool written in Go. It applies OS package updates using the host’s native package manager, writes structured logs, persists a JSON report for each run, and can optionally email a report.
 
-This repository is a production-oriented baseline, not a promise of risk-free “patch everything on every distro.” Patching is inherently high risk; the tool focuses on determinism, auditability, and operational guardrails.
+This project is an execution-and-reporting core. It does **not** magically solve fleet orchestration, rollback, or application-aware maintenance windows. If you pretend it does, you will ship outages.
 
-## Supported backends
 
-The backend is selected by detecting the package manager binary:
-- Debian/Ubuntu: `apt-get` (optional security-only via `unattended-upgrade` if installed)
-- RHEL/Fedora/Alma/Rocky: `dnf` or `yum`
-- SUSE/openSUSE: `zypper`
-- Arch: `pacman`
-- Alpine: `apk`
+## Supported Linux families (package-manager backends)
 
-Not yet implemented (by design, requires dedicated logic):
-- rpm-ostree (Silverblue/CoreOS)
-- transactional-update / MicroOS
-- image-based/immutable update systems
+Backend selection is done by detecting the package-manager binary on the host.
+
+- Debian / Ubuntu: `apt-get` (best-effort security-only via `unattended-upgrade` if installed)
+- RHEL / CentOS / Rocky / Alma / Fedora: `dnf` or `yum`
+- SUSE / openSUSE: `zypper`
+- Arch Linux: `pacman`
+- Alpine Linux: `apk`
+
 
 ## How it works
 
 Each run:
-1. Acquires a lock file to prevent concurrent patch runs
+1. Acquires a lock file to prevent concurrent runs
 2. Detects OS from `/etc/os-release` and selects a backend
 3. Executes update/upgrade commands (non-interactive where possible)
-4. Detects “reboot required” (best-effort)
+4. Detects “reboot required” (best-effort, backend-dependent)
 5. Writes a JSON report file
-6. Optionally emails the report (JSON attached)
+6. Optionally emails a report (JSON attached)
 
-## Installation (systemd timer recommended)
+
+## Build from source
+
+### Prerequisites
+- Go 1.22+
+- git
+- make (optional)
+
+Install prerequisites by distro:
+
+**Ubuntu/Debian**
+```bash
+sudo apt-get update
+sudo apt-get install -y git golang make
+```
+
+**Fedora/RHEL/Rocky/Alma**
+```bash
+sudo dnf install -y git golang make
+```
+
+**SUSE/openSUSE**
+```bash
+sudo zypper install -y git go make
+```
+
+**Arch**
+```bash
+sudo pacman -Syu --noconfirm git go make
+```
+
+**Alpine**
+```bash
+sudo apk add --no-cache git go make
+```
 
 ### Build
 ```bash
 git clone https://github.com/ivansostarko/serverpatcher.git
 cd serverpatcher
+
+# Option A: make
 make build
+
+# Option B: direct go build
+go build -trimpath -ldflags "-s -w" -o bin/serverpatcher ./cmd/serverpatcher
 ```
 
-### Install service + timer
-The installer:
-- installs the binary to `/usr/local/bin/serverpatcher`
-- installs config (if missing) to `/etc/serverpatcher/config.json`
-- installs systemd unit + timer
-- installs a logrotate snippet
-- enables and starts the timer
+Sanity checks:
+```bash
+./bin/serverpatcher version
+./bin/serverpatcher detect
+```
 
+## Install as a service
+
+### Recommendation: systemd timer + oneshot service
+This is the safest operational model: a short-lived process that runs on schedule.
+
+#### Install (systemd)
+From the repo root:
 ```bash
 sudo ./scripts/install.sh
 ```
 
-### Verify
+Verify:
 ```bash
-serverpatcher detect
 serverpatcher validate-config --config /etc/serverpatcher/config.json
 systemctl status serverpatcher.timer
 journalctl -u serverpatcher.service -n 200 --no-pager
 ```
 
-## Commands
-
+Force an immediate run:
 ```bash
-serverpatcher run-once --config /etc/serverpatcher/config.json
-serverpatcher daemon --config /etc/serverpatcher/config.json
-serverpatcher detect
-serverpatcher print-default-config --pretty
-serverpatcher validate-config --config /etc/serverpatcher/config.json
-serverpatcher version
+sudo systemctl start serverpatcher.service
 ```
 
 ## Configuration
 
-Config is JSON. Start from the example in `configs/config.example.json` or generate defaults:
+Config file format is JSON.
 
+Default path (installer):
+- `/etc/serverpatcher/config.json`
+
+Generate a default config:
 ```bash
 serverpatcher print-default-config --pretty > config.json
 ```
 
-### Important settings
-- `patching.dry_run`: best-effort simulation (varies by package manager)
-- `patching.security_only`: best-effort security-only updates (varies by package manager)
+### Key settings
+- `patching.dry_run`: best-effort simulation (varies by backend)
+- `patching.security_only`: best-effort “security only” updates (varies by backend and repo configuration)
 - `patching.reboot_policy`:
   - `none`: never reboot, just report
-  - `notify`: report reboot-required in JSON/email
-  - `reboot`: attempt to reboot the machine when a reboot is required (dangerous)
-- `patching.pre_hook` / `patching.post_hook`: executable paths, run before/after patching
+  - `notify`: include reboot-required in report/email
+  - `reboot`: attempt to reboot the host when a reboot is required (**dangerous**)
+- `patching.pre_hook` / `patching.post_hook`: executable paths
 - `email.password_env`: environment variable name holding the SMTP password (recommended)
-- `logging.file`: log path (rotation is handled via logrotate sample installed by the script)
-
-### SMTP credentials
-Set your SMTP password via environment variable for the service. Example approach:
-- put a root-owned drop-in in `/etc/systemd/system/serverpatcher.service.d/override.conf`
-- set `Environment=SERVERPATCHER_EMAIL_PASSWORD=...`
-- run `systemctl daemon-reload`
-
-## Reports and logs
-
-### Reports
-Default: `/var/lib/serverpatcher/reports/report_<hostname>_<timestamp>.json`
-
-The JSON includes:
-- step timing
-- command stdout/stderr
-- exit codes
-- reboot-required signal (best-effort)
-
-### Logs
-Default: `/var/log/serverpatcher/serverpatcher.log`
-
-This repository includes a logrotate snippet (`systemd/logrotate.serverpatcher`). The installer places it at `/etc/logrotate.d/serverpatcher`.
-
-## Operational guardrails (read this)
-
-1. **Patching requires root.** Treat this as privileged code.
-2. **Use systemd timers for fleets.** Prefer `run-once` via a timer, not a daemon.
-3. **Reboots are a business decision.** Do not enable `reboot_policy=reboot` unless you explicitly accept surprise downtime.
-4. **Security-only updates are not uniform.** “Security only” support varies across distros and repositories; the tool uses best-effort behavior and may fall back to full upgrades.
-5. **Test per distro.** Repo configs, proxies, and interactive prompts differ.
-
-## License
-MIT. See `LICENSE`.
+- `logging.file`: `/var/log/serverpatcher/serverpatcher.log` (rotated via logrotate)
+- `report.dir`: `/var/lib/serverpatcher/reports`
