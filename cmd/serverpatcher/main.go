@@ -136,16 +136,12 @@ func parseConfigAndVerbose(name string, args []string) (cfg string, verbose bool
 
 func usage() {
 	fmt.Fprintln(os.Stderr, `Server Patcher
-
-Usage:
-  serverpatcher <command> [--config path] [--verbose]
-
+Usage: serverpatcher <command> [--config path] [--verbose]
 Commands:
   run-once               Apply patches once and exit
   daemon                 Run continuously on an interval
   detect                 Print detected OS and selected backend
   validate-config        Validate config and exit
   print-default-config   Print default config JSON to stdout
-  version                Print version
-`)
+  version                Print version`)
 }
