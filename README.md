@@ -191,3 +191,6 @@ serverpatcher version
 ```bash
 sudo ./scripts/uninstall.sh
 ```
+
+## License
+MIT. See `LICENSE`.

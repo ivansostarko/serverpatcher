@@ -8,7 +8,7 @@ APT:
 - `https://<your-org>.github.io/serverpatcher/apt`
 
 YUM/DNF:
-- `https://<your-org>.github.io/serverpatcher/yum/x86_64`
+- `https://<your-org>.github.io/serverpatcher/yum/x86_64` 
 
 ## Ubuntu / Debian (APT)
 
