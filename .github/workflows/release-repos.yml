@@ -1,0 +1,67 @@
+name: Release Packages + Publish APT/YUM Repos
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Install tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev apt-utils gnupg createrepo-c
+          go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
+
+      - name: Compute version
+        id: ver
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Import GPG key (optional)
+        if: ${{ secrets.GPG_PRIVATE_KEY != '' }}
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Build packages
+        env:
+          PATH: ${{ env.PATH }}:${{ runner.home }}/go/bin
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          ./packaging/build-packages.sh
+
+      - name: Generate APT repo
+        env:
+          GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+        run: |
+          ./repo/apt/generate.sh
+
+      - name: Generate YUM repo
+        env:
+          GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+        run: |
+          ./repo/yum/generate.sh
+
+      - name: Publish public/ to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
+          force_orphan: true

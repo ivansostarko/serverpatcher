@@ -1,0 +1,51 @@
+name: serverpatcher
+arch: amd64
+platform: linux
+version: "0.0.0"   # overridden by CI (--version)
+section: admin
+priority: optional
+maintainer: "Server Patcher Maintainers <maintainers@example.com>"
+description: |
+  Server Patcher applies OS package updates via native package managers,
+  writes logs and JSON run reports, and can email a report.
+vendor: "Server Patcher"
+homepage: "https://github.com/<your-org>/serverpatcher"
+license: "MIT"
+
+depends:
+  - systemd | systemd-sysv
+  - ca-certificates
+
+contents:
+  - src: dist/serverpatcher
+    dst: /usr/bin/serverpatcher
+    file_info:
+      mode: 0755
+
+  # systemd units (Debian/Ubuntu path)
+  - src: systemd/serverpatcher.service
+    dst: /lib/systemd/system/serverpatcher.service
+    file_info:
+      mode: 0644
+  - src: systemd/serverpatcher.timer
+    dst: /lib/systemd/system/serverpatcher.timer
+    file_info:
+      mode: 0644
+
+  # config (preserve on upgrade)
+  - src: configs/config.example.json
+    dst: /etc/serverpatcher/config.json
+    type: config
+    file_info:
+      mode: 0644
+
+  # logrotate
+  - src: systemd/logrotate.serverpatcher
+    dst: /etc/logrotate.d/serverpatcher
+    file_info:
+      mode: 0644
+
+scripts:
+  postinstall: packaging/scripts/postinstall.sh
+  preremove: packaging/scripts/preremove.sh
+  postremove: packaging/scripts/postremove.sh
